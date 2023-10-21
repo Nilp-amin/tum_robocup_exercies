@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="object_server_node" pkg="object_server" type="object_server_node" output="screen"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find object_server)/launch/rviz/rviz.rviz"/>
+
+</launch>

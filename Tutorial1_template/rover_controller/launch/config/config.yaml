@@ -1,0 +1,7 @@
+#>>>>TODO: this needs tunning
+
+attractor_gain: [1,1,1]
+repulsive_gain: 0.0
+lambda_repulsive: 10
+vortex_gain: 0.0
+lambda_vortex: 10

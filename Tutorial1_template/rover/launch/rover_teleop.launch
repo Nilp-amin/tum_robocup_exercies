@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <!--#>>>>TODO: load the config.yaml gains for M,D,F into the parameter server -->
+  <rosparam command="load" file="$(find rover)/launch/config/config.yaml" />
+
+  <!--#>>>>TODO: execute the rover_node node -->
+  <node name="rover_node" pkg="rover" type="rover_node"/>
+  
+  <!--#>>>>TODO: execute key_teleop.py -->
+  <node name="key_teleop_node" pkg="key_teleop" type="key_teleop.py" output="screen"/>
+
+</launch>

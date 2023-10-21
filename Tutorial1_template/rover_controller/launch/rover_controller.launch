@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!--#>>>>TODO: load the config.yaml gains for M,D,F into the parameter server -->
+  <rosparam file="TODO" />
+  <!--#>>>>TODO: execute the rover_node node -->
+  <node name="TODO" pkg="TODO" type="TODO"/>
+  
+  <!--#>>>>TODO: load the config.yaml gains for K_attractor,K_repulsive,K_vortex into the parameter server -->
+  <rosparam file="TODO" />
+  <!--#>>>>TODO: execute the rover_controller_node node -->
+  <node name="TODO" pkg="TODO" type="TODO" output="screen"/>
+
+</launch>
