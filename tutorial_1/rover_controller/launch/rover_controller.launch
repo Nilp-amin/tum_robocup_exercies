@@ -2,13 +2,13 @@
 <launch>
 
   <!--#>>>>TODO: load the config.yaml gains for M,D,F into the parameter server -->
-  <rosparam file="TODO" />
+  <rosparam command="load" file="$(find rover)/launch/config/config.yaml" />
   <!--#>>>>TODO: execute the rover_node node -->
-  <node name="TODO" pkg="TODO" type="TODO"/>
+  <node name="rover_node" pkg="rover" type="rover_node"/>
   
   <!--#>>>>TODO: load the config.yaml gains for K_attractor,K_repulsive,K_vortex into the parameter server -->
-  <rosparam file="TODO" />
+  <rosparam command="load" file="$(find rover_controller)/launch/config/config.yaml" />
   <!--#>>>>TODO: execute the rover_controller_node node -->
-  <node name="TODO" pkg="TODO" type="TODO" output="screen"/>
+  <node name="rover_controller_node" pkg="rover_controller" type="rover_controller_node" output="screen"/>
 
 </launch>

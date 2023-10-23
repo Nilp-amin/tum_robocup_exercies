@@ -20,43 +20,41 @@ namespace rover_controller
     // setup ros connections
 
     //#>>>>TODO: advertise a geometry_msgs::Twist to replace the previous keyboard topic
-    command_pub_ = //#>>>>TODO: advertise the topic
+    command_pub_ = nh.advertise<geometry_msgs::Twist>("rover_thrust", 10);
 
-    field_pub_ = //#>>>>TODO: advertise a geometry_msgs::PoseArray with name "/field"
+    field_pub_ = nh.advertise<geometry_msgs::PoseArray>("/field", 10); //#>>>>TODO: advertise a geometry_msgs::PoseArray with name "/field"
     //#>>>> Hint: see http://docs.ros.org/en/lunar/api/geometry_msgs/html/msg/PoseArray.html
 
-    goal_sub_
-
     goal_sub_ = nh.subscribe("/move_base_simple/goal", 1, 
-                             &Controller::/*#>>>>TODO: The NAME of the callback function*/,
+                             &Controller::goalCallback,
                              this);
 
     //#>>>>TODO: Subscribe to the obstacles msg published by the package object_server                     
-    obstacles_sub_ = nh.subscribe(/*#>>>>TODO: The NAME of the command topic*/ 1, 
-                             &Controller::/*#>>>>TODO: The NAME of the callback function*/, this);
+    obstacles_sub_ = nh.subscribe("/obstacles", 1, 
+                             &Controller::obstacleCallback, this);
 
     // get the parameters of this node (see config.yaml)
 
     std::vector<double> v;
     double d;
 
-    if(!ros::param::get(/*#>>>>TODO: PARAMETER NAME*/, v))
+    if(!ros::param::get("attractor_gain", v))
       return false;
     K_attractor_ = Eigen::Vector3d(v[0], v[1], v[2]).asDiagonal();
 
-    if(!ros::param::get(/*#>>>>TODO: PARAMETER NAME*/, d))
+    if(!ros::param::get("repulsive_gain", d))
       return false;
     k_repulsive_ = d;
 
-    if(!ros::param::get(/*#>>>>TODO: PARAMETER NAME*/, d))
+    if(!ros::param::get("lambda_repulsive", d))
       return false;
     lambda_repulsive_ = d;
   
-    if(!ros::param::get(/*#>>>>TODO: PARAMETER NAME*/, d))
+    if(!ros::param::get("vortex_gain", d))
       return false;
     k_vortex_ = d;
 
-    if(!ros::param::get(/*#>>>>TODO: PARAMETER NAME*/, d))
+    if(!ros::param::get("lambda_vortex", d))
       return false;
     lambda_vortex_ = d;
 
@@ -122,8 +120,14 @@ namespace rover_controller
   {
     //#>>>>TODO: Implement the attractor force
     //#>>>>Hint: Eigen offers function such as: norm(), normalize(), etc,...
+    Eigen::Vector3d e;
+    e = goal_pos_w_ - roverPos(); 
+    if (e.norm() > 1)
+    {
+      e.normalize();
+    }
 
-    return Eigen::Vector3d::Zero(); //#>>>>TODO: Replace
+    return K_attractor_ * e;
   }
 
   Eigen::Vector3d Controller::obstacleRepulsiveForce(
@@ -263,11 +267,7 @@ namespace rover_controller
     tf::StampedTransform transform;
     try {
       listener_.lookupTransform(
-        /*#>>>>TODO: the target frame name*/
-        /*#>>>>TODO: the source frame name*/, ros::Time(0), transform);
-
-      //#>>>> Hint: http://wiki.ros.org/tf/Tutorials/Writing%20a%20tf%20listener%20%28C%2B%2B%29
-      //#>>>> Hint: lookupTransform() gives the transformation source with respect to target
+        "rover", "map", ros::Time(0), transform);
     }
     catch (tf::TransformException ex) 
     {
@@ -300,13 +300,14 @@ namespace rover_controller
     // member variable goal_pos_w_ = [pos_x, pos_y, theta] \in R^3
 
     has_goal_ = true;
-    goal_pos_w_.x() = //#>>>>TODO: get the x position
-    goal_pos_w_.y() = //#>>>>TODO: get the y position
-    //Hint: http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/PoseStamped.html
+    goal_pos_w_.x() = msg->pose.position.x;
+    goal_pos_w_.y() = msg->pose.position.y;
 
     Eigen::Quaterniond Q_b_w(
-      /*#>>>>TODO: create a Quaternion(w,x,y,z) from the orientation part of the message*/);
-    // Hint: https://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html
+      msg->pose.orientation.w,
+      msg->pose.orientation.x,
+      msg->pose.orientation.y,
+      msg->pose.orientation.z);
 
     // Next we use Eigen to convert the Quaternion into a RotationMatrix and 
     // extract the theta angle from its upper 2x2 part
@@ -314,7 +315,7 @@ namespace rover_controller
     goal_pos_w_.z() = Eigen::Rotation2Dd(M).angle();
 
     // print the new goal
-    //#>>>>TODO: Print the goal vector in the console
+    ROS_INFO_STREAM_THROTTLE(0.5, "RoverController::goalCallback=" << goal_pos_w_.transpose());
   }
 
   void Controller::obstacleCallback(const object_msgs::ObjectsConstPtr& msg)
@@ -329,8 +330,8 @@ namespace rover_controller
     obstacles_.resize(msg->objects.size());
     for(size_t i = 0; i < msg->objects.size(); ++i)
     {
-      obstacles_[i].pos << //#>>>>TODO: Save the 3d position
-      obstacles_[i].radius = //#>>>>TODO: Save the radius
+      obstacles_[i].pos << msg->objects[i].pose.position.x, msg->objects[i].pose.position.y, msg->objects[i].pose.position.z;
+      obstacles_[i].radius = msg->objects[i].radius.data;
     }
   }
 
