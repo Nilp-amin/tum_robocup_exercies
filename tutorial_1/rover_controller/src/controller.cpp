@@ -20,7 +20,7 @@ namespace rover_controller
     // setup ros connections
 
     //#>>>>TODO: advertise a geometry_msgs::Twist to replace the previous keyboard topic
-    command_pub_ = nh.advertise<geometry_msgs::Twist>("rover_thrust", 10);
+    command_pub_ = nh.advertise<geometry_msgs::Twist>("/key_vel", 10);
 
     field_pub_ = nh.advertise<geometry_msgs::PoseArray>("/field", 10); //#>>>>TODO: advertise a geometry_msgs::PoseArray with name "/field"
     //#>>>> Hint: see http://docs.ros.org/en/lunar/api/geometry_msgs/html/msg/PoseArray.html
@@ -118,10 +118,8 @@ namespace rover_controller
   Eigen::Vector3d Controller::goalAttractorForce(
     const Eigen::Vector3d& goal, const Eigen::Vector3d& pos)
   {
-    //#>>>>TODO: Implement the attractor force
-    //#>>>>Hint: Eigen offers function such as: norm(), normalize(), etc,...
     Eigen::Vector3d e;
-    e = goal_pos_w_ - roverPos(); 
+    e = goal - pos; 
     if (e.norm() > 1)
     {
       e.normalize();
@@ -135,21 +133,19 @@ namespace rover_controller
   {
     Eigen::Vector3d force = Eigen::Vector3d::Zero();
 
-    // #>>>>TODO: Uncomment this part to implement the repulsive force
-
-    // Eigen::Vector3d v;
-    // double lambda = 20;
-    // for(size_t i = 0; i < obstacles.size(); ++i)
-    // {
-    //   v << //#>>>>TODO: 2d distance of obstacle and rover (note z component is zero!)
-    //   double v_norm = //#>>>>TODO: norm of v
-    //   double a = //#>>>>TODO: radius obstacle + radius rover
-    //   double d = std::max(0, /*#>>>>TODO: the surface distance rover obstacle*/);
-    //
-    //   double f = //#>>>>TODO: force magnitude
-    //
-    //   force -= //#>>>>TODO: add up the repulsive force vector for this obstacle
-    // }
+    Eigen::Vector3d v;
+    double lambda = lambda_repulsive_;
+    for(size_t i = 0; i < obstacles.size(); ++i)
+    {
+      v << obstacles[i].pos - pos; //#>>>>TODO: 2d distance of obstacle and rover (note z component is zero!)
+      double v_norm = v.norm(); //#>>>>TODO: norm of v
+      double a = obstacles[i].radius + rover_radius_; //#>>>>TODO: radius obstacle + radius rover
+      double d = std::max(0.0, v_norm - a); /*#>>>>TODO: the surface distance rover obstacle*/;
+    
+      double f = k_repulsive_*exp(-lambda*d); //#>>>>TODO: force magnitude
+    
+      force -= f*v; //#>>>>TODO: add up the repulsive force vector for this obstacle
+    }
     return force;
   }
 
@@ -267,7 +263,7 @@ namespace rover_controller
     tf::StampedTransform transform;
     try {
       listener_.lookupTransform(
-        "rover", "map", ros::Time(0), transform);
+        "map", "rover", ros::Time(0), transform);
     }
     catch (tf::TransformException ex) 
     {
