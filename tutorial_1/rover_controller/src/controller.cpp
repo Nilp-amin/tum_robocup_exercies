@@ -175,13 +175,13 @@ namespace rover_controller
     //   { 
     //     //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
     //     //#>>>>TODO: to create - pi/2 = - 90 degree rotation
-    //     R.topLeftCorner(2,2) = //#>>>>TODO: 
+    //     R.topLeftCorner(2,2) = Eigen::Rotation2Dd(-M_PI/2.0f).toRotationMatrix(); //#>>>>TODO: 
     //   }
     //   else
     //   {
     //     //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
     //     //#>>>>TODO: to create + pi/2 = + 90 degree rotation
-    //     R.topLeftCorner(2,2) = //#>>>>TODO: 
+    //     R.topLeftCorner(2,2) = Eigen::Rotation2Dd(M_PI/2.0f).toRotationMatrix(); //#>>>>TODO: 
     //   }
 
     //   // compute vortex field
@@ -326,7 +326,9 @@ namespace rover_controller
     obstacles_.resize(msg->objects.size());
     for(size_t i = 0; i < msg->objects.size(); ++i)
     {
-      obstacles_[i].pos << msg->objects[i].pose.position.x, msg->objects[i].pose.position.y, msg->objects[i].pose.position.z;
+      obstacles_[i].pos << msg->objects[i].pose.position.x, 
+                           msg->objects[i].pose.position.y, 
+                           msg->objects[i].pose.position.z;
       obstacles_[i].radius = msg->objects[i].radius.data;
     }
   }
