@@ -109,8 +109,8 @@ namespace rover_controller
     // avoid collision
     F += obstacleRepulsiveForce(obstacles_, pos);
 
-    // add vortex/curl field
-    F += obstacleVortexForce(obstacles_, pos);
+    // // add vortex/curl field
+    // F += obstacleVortexForce(obstacles_, pos);
     
     return F;
   }
@@ -142,7 +142,7 @@ namespace rover_controller
       double a = obstacles[i].radius + rover_radius_; //#>>>>TODO: radius obstacle + radius rover
       double d = std::max(0.0, v_norm - a); /*#>>>>TODO: the surface distance rover obstacle*/;
     
-      double f = k_repulsive_*exp(-lambda*d); //#>>>>TODO: force magnitude
+      double f = k_repulsive_*std::exp(-lambda*d); //#>>>>TODO: force magnitude
     
       force -= f*v; //#>>>>TODO: add up the repulsive force vector for this obstacle
     }
@@ -156,41 +156,41 @@ namespace rover_controller
 
     //#>>>>OPTIONAL: Uncomment this part to implement the vortex force
 
-    // // get the heading vector of the rover
-    // Eigen::Vector3d n_rover(std::sin(pos[2]), std::cos(pos[2]), 0.0);
+    // get the heading vector of the rover
+    Eigen::Vector3d n_rover(std::sin(pos[2]), std::cos(pos[2]), 0.0);
 
-    // Eigen::Vector3d v;
-    // Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d v;
+    Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
 
-    // for(size_t i = 0; i < obstacles.size(); ++i)
-    // {
-    //   // get the vector rover to obstacle 
-    //   v << (obstacles[i].pos - pos).head(2), 0;
-    //   Eigen::Vector3d n_obs = v.normalized();
+    for(size_t i = 0; i < obstacles.size(); ++i)
+    {
+      // get the vector rover to obstacle 
+      v << (obstacles[i].pos - pos).head(2), 0;
+      Eigen::Vector3d n_obs = v.normalized();
 
-    //   // the sign of the dot product between obstacle vector and heading
-    //   // tells us if an object is to the right or to the left
-    //   double alpha = n_rover.dot(n_obs);
-    //   if(alpha < 0)
-    //   { 
-    //     //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
-    //     //#>>>>TODO: to create - pi/2 = - 90 degree rotation
-    //     R.topLeftCorner(2,2) = Eigen::Rotation2Dd(-M_PI/2.0f).toRotationMatrix(); //#>>>>TODO: 
-    //   }
-    //   else
-    //   {
-    //     //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
-    //     //#>>>>TODO: to create + pi/2 = + 90 degree rotation
-    //     R.topLeftCorner(2,2) = Eigen::Rotation2Dd(M_PI/2.0f).toRotationMatrix(); //#>>>>TODO: 
-    //   }
+      // the sign of the dot product between obstacle vector and heading
+      // tells us if an object is to the right or to the left
+      double alpha = n_rover.dot(n_obs);
+      if(alpha < 0)
+      { 
+        //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
+        //#>>>>TODO: to create - pi/2 = - 90 degree rotation
+        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(-M_PI_2).toRotationMatrix(); //#>>>>TODO: 
+      }
+      else
+      {
+        //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
+        //#>>>>TODO: to create + pi/2 = + 90 degree rotation
+        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(M_PI_2).toRotationMatrix(); //#>>>>TODO: 
+      }
 
-    //   // compute vortex field
-    //   double v_norm = v.norm();
-    //   double a = obstacles[i].radius + rover_radius_;
-    //   double d = std::max(0.0, d - a);
-    //   double f = k_vortex_*std::exp(-lambda_vortex_*d);
-    //   force -= f * R * v.normalized();
-    // }
+      // compute vortex field
+      double v_norm = v.norm();
+      double a = obstacles[i].radius + rover_radius_;
+      double d = std::max(0.0, d - a);
+      double f = k_vortex_*std::exp(-lambda_vortex_*d);
+      force -= f * R * v.normalized();
+    }
     return force;
   }
 
