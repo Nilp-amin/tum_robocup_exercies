@@ -19,17 +19,14 @@ namespace rover_controller
   {
     // setup ros connections
 
-    //#>>>>TODO: advertise a geometry_msgs::Twist to replace the previous keyboard topic
     command_pub_ = nh.advertise<geometry_msgs::Twist>("/key_vel", 10);
 
-    field_pub_ = nh.advertise<geometry_msgs::PoseArray>("/field", 10); //#>>>>TODO: advertise a geometry_msgs::PoseArray with name "/field"
-    //#>>>> Hint: see http://docs.ros.org/en/lunar/api/geometry_msgs/html/msg/PoseArray.html
+    field_pub_ = nh.advertise<geometry_msgs::PoseArray>("/field", 10);
 
     goal_sub_ = nh.subscribe("/move_base_simple/goal", 1, 
                              &Controller::goalCallback,
                              this);
 
-    //#>>>>TODO: Subscribe to the obstacles msg published by the package object_server                     
     obstacles_sub_ = nh.subscribe("/obstacles", 1, 
                              &Controller::obstacleCallback, this);
 
@@ -109,7 +106,7 @@ namespace rover_controller
     // avoid collision
     F += obstacleRepulsiveForce(obstacles_, pos);
 
-    // // add vortex/curl field
+    // add vortex/curl field
     F += obstacleVortexForce(obstacles_, pos);
     
     return F;
@@ -124,7 +121,6 @@ namespace rover_controller
     {
       e.normalize();
     }
-
     return K_attractor_ * e;
   }
 
@@ -137,14 +133,14 @@ namespace rover_controller
     double lambda = lambda_repulsive_;
     for(size_t i = 0; i < obstacles.size(); ++i)
     {
-      v << obstacles[i].pos - pos; //#>>>>TODO: 2d distance of obstacle and rover (note z component is zero!)
-      double v_norm = v.norm(); //#>>>>TODO: norm of v
-      double a = obstacles[i].radius + rover_radius_; //#>>>>TODO: radius obstacle + radius rover
-      double d = std::max(0.0, v_norm - a); /*#>>>>TODO: the surface distance rover obstacle*/;
+      v << obstacles[i].pos - pos;
+      double v_norm = v.norm();
+      double a = obstacles[i].radius + rover_radius_;
+      double d = std::max(0.0, v_norm - a);
     
-      double f = k_repulsive_*std::exp(-lambda*d); //#>>>>TODO: force magnitude
+      double f = k_repulsive_*std::exp(-lambda*d);
     
-      force -= f*v; //#>>>>TODO: add up the repulsive force vector for this obstacle
+      force -= f*v/v_norm;
     }
     return force;
   }
@@ -173,15 +169,11 @@ namespace rover_controller
       double alpha = n_rover.dot(n_obs);
       if(alpha < 0)
       { 
-        //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
-        //#>>>>TODO: to create - pi/2 = - 90 degree rotation
-        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(-M_PI_2).toRotationMatrix(); //#>>>>TODO: 
+        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(-M_PI_2).toRotationMatrix(); 
       }
       else
       {
-        //#>>>>TODO: set the upper left 2x2 corner of the rotation matrix R
-        //#>>>>TODO: to create + pi/2 = + 90 degree rotation
-        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(M_PI_2).toRotationMatrix(); //#>>>>TODO: 
+        R.topLeftCorner(2,2) = Eigen::Rotation2Dd(M_PI_2).toRotationMatrix(); 
       }
 
       // compute vortex field
