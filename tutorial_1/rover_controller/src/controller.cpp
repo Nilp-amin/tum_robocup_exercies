@@ -110,7 +110,7 @@ namespace rover_controller
     F += obstacleRepulsiveForce(obstacles_, pos);
 
     // // add vortex/curl field
-    // F += obstacleVortexForce(obstacles_, pos);
+    F += obstacleVortexForce(obstacles_, pos);
     
     return F;
   }
