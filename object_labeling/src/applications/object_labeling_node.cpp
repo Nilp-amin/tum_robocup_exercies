@@ -2,13 +2,13 @@
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "plane_segmentation"); // TODO: change name???
+  ros::init(argc, argv, "object_labeling"); // TODO: change name???
   ros::NodeHandle nh;
 
   //#>>>>TODO: Set the correct topic names and frames
   std::string objects_cloud_topic{"/objects_point_cloud"}; // = "?"
   std::string camera_info_topic{"/xtion/rgb/camera_info"}; // = "?"
-  std::string camera_frame{""}; // = "?"
+  std::string camera_frame{"xtion_depth_optical_frame"}; // = "?" // optical frame??
 
   ObjectLabeling labeling(
     objects_cloud_topic,
