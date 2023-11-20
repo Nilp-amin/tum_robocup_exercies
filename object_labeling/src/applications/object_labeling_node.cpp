@@ -8,7 +8,7 @@ int main(int argc, char** argv)
   //#>>>>TODO: Set the correct topic names and frames
   std::string objects_cloud_topic{"/objects_point_cloud"}; // = "?"
   std::string camera_info_topic{"/xtion/rgb/camera_info"}; // = "?"
-  std::string camera_frame{"xtion_depth_optical_frame"}; // = "?" // optical frame??
+  std::string camera_frame{"xtion_rgb_optical_frame"}; // = "?" // optical frame??
 
   ObjectLabeling labeling(
     objects_cloud_topic,

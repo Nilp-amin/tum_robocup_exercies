@@ -141,6 +141,7 @@ private:
 
   ros::Publisher labeled_object_cloud_pub_; //!< publisher for labeled pointcloud
   ros::Publisher text_marker_pub_;
+  ros::Publisher centroid_pub_;
 
   // outputs
   CloudPtrl labeled_point_cloud_;                 //!< labeled pointcloud (pointcloud that knows the object type)

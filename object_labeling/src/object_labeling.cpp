@@ -32,6 +32,9 @@ bool ObjectLabeling::initalize(ros::NodeHandle& nh)
   // publish the LABELED object names as visulaization marker (http://wiki.ros.org/rviz/DisplayTypes/Marker)
   text_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/text_markers", 1);
 
+  // DEBUG
+  centroid_pub_ = nh.advertise<geometry_msgs::PointStamped>("cluster_centroid", 1);
+
   // init internal pointclouds for processing (again pcl uses pointers)
   object_point_cloud_.reset(new PointCloud);    // holds unlabled object point cloud
   labeled_point_cloud_.reset(new PointCloudl);  // holds labled object point cloud
@@ -98,16 +101,26 @@ bool ObjectLabeling::labelObjects(CloudPtr& input, CloudPtrl& output)
   //#>>>>TODO: Iterate over each cluster and compute its centroid point (= mean)
   //#>>>>TODO: Push the centroid into the vector of centroids
   std::vector<Eigen::Vector3d> centroids;
-  for (const auto& cluster: cluster_indices)
+  for (const auto& cluster : cluster_indices)
   {
     pcl::PointCloud<PointT>::Ptr cloud_cluster(new pcl::PointCloud<PointT>);
     for (const auto& idx: cluster.indices)
     {
-      cloud_cluster->push_back((*input)[idx]);
+      cloud_cluster->push_back(input->points[idx]);
     }
     Eigen::Vector4d centroid;
     pcl::compute3DCentroid(*cloud_cluster, centroid);
     centroids.push_back(centroid.head<3>());
+
+    // Publish the centroid as a PointStamped message
+    geometry_msgs::PointStamped centroid_msg;
+    centroid_msg.header.frame_id = "base_footprint";
+    centroid_msg.header.stamp = ros::Time::now();
+    centroid_msg.point.x = centroid[0];
+    centroid_msg.point.y = centroid[1];
+    centroid_msg.point.z = centroid[2];
+
+    centroid_pub_.publish(centroid_msg);
   }
 
   // Next we need to find the pixel coordinates of the centroids within the 2d
@@ -146,7 +159,7 @@ bool ObjectLabeling::labelObjects(CloudPtr& input, CloudPtrl& output)
     homogenous_coord /= homogenous_coord[2];
     pixel_centroids.emplace_back(homogenous_coord[0], homogenous_coord[1]);
   }
-
+  
   // Now the centorids of each cluster are given as pixel coordinates in the 2d image
   // plane of the camera. What remains is to find the bounding box that matches to each of 
   // those controids.
@@ -167,8 +180,8 @@ bool ObjectLabeling::labelObjects(CloudPtr& input, CloudPtrl& output)
     //#>>>>TODO: For all cenroids compute the distance to the boudning box
     //#>>>>TODO: select the clostes as match and get its index in pixel_centroids
     int match; // = ?
-    double closest_distance = 10000;
-    Eigen::Vector2d bounding_box_centroid{(bounding_box.xmax - bounding_box.xmin)/2, (bounding_box.ymax - bounding_box.ymin)/2};
+    double closest_distance = std::numeric_limits<double>::max();
+    Eigen::Vector2d bounding_box_centroid{(bounding_box.xmax + bounding_box.xmin)/2.0, (bounding_box.ymax + bounding_box.ymin)/2.0};
     for (size_t j = 0; j < pixel_centroids.size(); j++)
     {
       double distance = (pixel_centroids[j] - bounding_box_centroid).norm();
