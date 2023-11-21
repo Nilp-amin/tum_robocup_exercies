@@ -69,6 +69,6 @@
     <node name="image_proc" pkg="image_proc" type="image_proc" ns="xtion/rgb"/>
 
     <!-- Launch rviz -->
- 	  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find object_detection_world)/config/tiago.rviz" required="true" />
+ 	  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find object_detection_world)/config/tiago_labels.rviz" required="true" />
 
 </launch>
