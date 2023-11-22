@@ -1,5 +1,6 @@
 # Authors
 1. Nilp Amin (Matrikel-Nr: 03784634)
+2. Margaux Edwards (Matrikel-Nr: 03784879)
 
 # Instructions
 All the below exercises are compiled using the below instructions. It is assumed that darknet_ros is installed in a ROS workspace called **catkin_ws**. This is also where these packages should be placed, as it depends on darknet_ros to compile and function. It is then assumed that there is a seperate workspace with the files from the Tiago docker workspace, e.g. **tiago_public_ws**.
