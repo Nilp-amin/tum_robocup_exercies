@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <include file="$(find plane_segmentation)/launch/plane_segmentation_tiago.launch"/>
+    <include file="$(find object_labeling)/launch/object_labeling.launch"/>
+    <include file="$(find object_detection_world)/launch/object_detection.launch"/>
+  
+</launch>
