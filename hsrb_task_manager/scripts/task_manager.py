@@ -2,17 +2,82 @@ import rospy
 import smach
 import smach_ros
 import random
+
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from actionlib import SimpleActionClient
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from control_msgs.msg import JointTrajectoryControllerState
+from visualization_msgs.msg import MarkerArray
 
 # define states
 class FindTargat(smach.State):
     def __init__(self):
         # define the outcome of the state
-        smach.State.__init__(self, outcomes=['aborted','succeeded'])
+        smach.State.__init__(self, outcomes=['aborted','succeeded'], output_keys=["navGoalInd", "targetMarker"])
+        # define publisher to move the robots head down to look at the table
+        self.head_pub = rospy.Publisher("/head_controller/command", JointTrajectory, queue_size=10)
+
+        # define the goal object to pick up
+        self.goal_object = "cup"
+
+    def _look_down(self):
+        # Set the desired joint angles (in radians) to look down
+        head_joint_traj = JointTrajectory()
+        head_joint_traj.joint_names = ["head_1_joint", "head_2_joint"]
+        point = JointTrajectoryPoint()
+        point.positions = [0.0, -0.8]
+        point.time_from_start = rospy.Duration(1.0)
+        head_joint_traj.points.append(point)
+
+        # publish goal position and wait for the head to reach the goal position
+        self.head_pub.publish(head_joint_traj)
+        rospy.sleep(2.0)
+
+    def _look_up(self):
+        # Set the desired joint angles (in radians) to look down
+        head_joint_traj = JointTrajectory()
+        head_joint_traj.joint_names = ["head_1_joint", "head_2_joint"]
+        point = JointTrajectoryPoint()
+        point.positions = [0.0, 0.0]
+        point.time_from_start = rospy.Duration(1.0)
+        head_joint_traj.points.append(point)
+
+        # publish goal position and wait for the head to reach the goal position
+        self.head_pub.publish(head_joint_traj)
+        rospy.sleep(2.0)
+
     # replace this part by your method
     def execute(self, userdata):
         rospy.loginfo('Executing state FindTargat')
+
+        # make Tiago look down at table
+        rospy.loginfo("looking down")
+        self._look_down()
+
+        status = "aborted"
+        # check if the object is detected
+        # if object is detected, store the centroid of the detected object in userdata
+        # set the return status to succeeded
+
+        try:
+            marker_array_msg = rospy.wait_for_message("/text_markers", MarkerArray, timeout=5.0)
+            rospy.loginfo(f"Found {len(marker_array_msg.markers)} objects in vision.")
+            for marker in marker_array_msg.markers:
+                print(marker.text)
+                if marker.text == self.goal_object:
+                    rospy.loginfo(f"Found target object: {self.goal_object}.")
+                    userdata.targetMarker = marker
+                    status = "succeeded"
+        except rospy.ROSException as e:
+            rospy.logwarn(f"Timeout reached. No message received within 5 seconds. Error: {e}")
+
+
+        # move the head up  and return the status
+        rospy.loginfo("looking up")
+        self._look_up()
+
+        return status
+
+
         if random.random() < 0.9:
             rospy.loginfo('Target not found')
             return 'aborted'
@@ -32,8 +97,6 @@ class Grasp(smach.State):
 # main
 def main():
     rospy.init_node('smach_example_state_machine')
-    # move_base_client = SimpleActionClient('move_base', MoveBaseAction)
-    # move_base_client.wait_for_server()
     # Create a SMACH state machine  
     sm = smach.StateMachine(outcomes=['succeeded', 'aborted', 'preempted'])
     # Define user data for state machine
@@ -70,7 +133,7 @@ def main():
                                 transitions={'succeeded':'FIND_TARGET_ON_TABLE_TWO',
                                             'aborted':'aborted'})
 
-        smach.StateMachine.add('FIND_TARGET_ON_TABLE_ONE', FindTargat(), 
+        smach.StateMachine.add('FIND_TARGET_ON_TABLE_ONE', FindTargat(),
                                 transitions={'succeeded':'GRASP', 
                                             'aborted':'NAVIGATION_TO_TABLE_TWO'})
         smach.StateMachine.add('FIND_TARGET_ON_TABLE_TWO', FindTargat(), 
