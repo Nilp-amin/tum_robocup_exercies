@@ -45,6 +45,8 @@ bool PlaneSegmentation::initalize(ros::NodeHandle& nh)
   //#>>>>TODO: advertise the pointcloud for the remaining points (objects)
   objects_cloud_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/objects_point_cloud", 10);
 
+  plane_vertex_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/table_vertices", 10);
+
   // Most PCL functions accept pointers as their arguments, as such we first set
   // initalize these pointers, otherwise we will run into segmentation faults...
   raw_cloud_.reset(new PointCloud);
@@ -162,6 +164,28 @@ bool PlaneSegmentation::segmentCloud(CloudPtr& input, CloudPtr& plane_cloud, Clo
   extract.setNegative(false); // extract inliers
   extract.filter(*plane_cloud);
 
+  // obtain the corner coordinates of the plane
+  pcl::ConvexHull<PointT> chull;
+  chull.setInputCloud(plane_cloud);
+  pcl::PointCloud<PointT>::Ptr chull_points(new pcl::PointCloud<PointT>);
+  chull.reconstruct(*chull_points);
+
+  // get the min and max points of the bounding box
+  PointT min_point, max_point;
+  pcl::getMinMax3D(*chull_points, min_point, max_point);
+
+  // Create the two corner points of the bounding box
+  pcl::PointCloud<PointT>::Ptr corner_points(new pcl::PointCloud<PointT>);
+  corner_points->push_back(min_point);
+  // corner_points->push_back(PointT(min_point.x, max_point.y, min_point.z));
+  corner_points->push_back(max_point);
+  // corner_points->push_back(PointT(max_point.x, min_point.y, max_point.z));
+
+  // display the corners of the plane
+  sensor_msgs::PointCloud2 corners_msg;
+  pcl::toROSMsg(*corner_points, corners_msg);
+  corners_msg.header.frame_id = "base_footprint";  // Set the frame_id as appropriate
+  plane_vertex_pub_.publish(corners_msg);
 
   //#>>>>TODO: save outliers in the objects_cloud
   //#>>>>Note: This should be the rest

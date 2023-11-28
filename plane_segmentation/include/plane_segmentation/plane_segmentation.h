@@ -37,6 +37,8 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl_ros/impl/transforms.hpp>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/common/common.h>
 
 /**
  * @brief PlaneSegementation class, splits RGB-D pointclouds into table surface
@@ -100,6 +102,7 @@ private:
    * @param input input pointcloud
    * @param plane_cloud pointcloud containing table
    * @param objects_cloud pointcloud containing objects only
+   * @param bounding_cloud pointcloud containing bounding box of table
    * @return true success
    * @return false failure
    */
@@ -125,6 +128,7 @@ private:
 
   ros::Publisher plane_cloud_pub_;    //!< Publish table point cloud
   ros::Publisher objects_cloud_pub_;  //!< Publish objects point cloud
+  ros::Publisher plane_vertex_pub_;
 
   // internal pointclouds
   CloudPtr raw_cloud_;                  //!< Inital raw point cloud
