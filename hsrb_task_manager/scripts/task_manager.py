@@ -36,7 +36,7 @@ class FindTargat(smach.State):
         head_joint_traj = JointTrajectory()
         head_joint_traj.joint_names = ["head_1_joint", "head_2_joint"]
         point = JointTrajectoryPoint()
-        point.positions = [0.0, -0.8]
+        point.positions = [0.0, -0.75]
         point.time_from_start = rospy.Duration(1.0)
         head_joint_traj.points.append(point)
 
@@ -90,14 +90,6 @@ class FindTargat(smach.State):
 
         return status
 
-
-        if random.random() < 0.9:
-            rospy.loginfo('Target not found')
-            return 'aborted'
-        else:
-            rospy.loginfo('Target found')
-            return 'succeeded'
-        
 class Grasp(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded'], input_keys=["navGoalInd", "targetMarker"])
@@ -105,9 +97,16 @@ class Grasp(smach.State):
         self.move_group = moveit_commander.MoveGroupCommander("arm_torso")
         self.move_group.set_planner_id("RRTConnectkConfigDefault")
         self.move_group.set_planning_time(10.0)
-        self.move_group.set_goal_orientation_tolerance(np.deg2rad(5))
+        # self.move_group.set_goal_orientation_tolerance(np.deg2rad(5))
         self.planning_scene = moveit_commander.PlanningSceneInterface()
-        self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=10)
+        self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=1)
+
+        # create publisher for moving the gripper
+        self.gripper_cmd_pub = rospy.Publisher("/parallel_gripper_controller/command", JointTrajectory, queue_size=1)
+
+        # set the names of the gripper joints
+        self.left_gripper_name = "gripper_left_finger_joint"
+        self.right_gripper_name = "gripper_right_finger_joint"
 
     def _create_planning_scene(self, marker_pose):
         # add box into planning scene for table
@@ -158,6 +157,17 @@ class Grasp(smach.State):
         self.move_group.clear_pose_targets()
         rospy.loginfo(f"planning and execution result: {success}")
 
+    def _grasp_object(self, joint_angles: list):
+        joint_traj_msg = JointTrajectory()
+        joint_traj_msg.joint_names = [self.left_gripper_name, self.right_gripper_name]
+
+        p = JointTrajectoryPoint()
+        p.positions = joint_angles 
+        p.time_from_start = rospy.Duration(1.0)
+
+        joint_traj_msg.points.append(p)
+        self.gripper_cmd_pub.publish(joint_traj_msg)
+
     def execute(self, userdata):
         rospy.loginfo('Executing state Grasp')
         marker = userdata.targetMarker
@@ -166,14 +176,17 @@ class Grasp(smach.State):
         pose_goal_msg = PoseStamped()
         pose_goal_msg.header.stamp = marker.header.stamp
         pose_goal_msg.header.frame_id = marker.header.frame_id
-        quaternion = quaternion_from_euler(1.5707, 0, 0)
+        # quaternion = quaternion_from_euler(1.5707, 0.0, 0.0)
+        quaternion = quaternion_from_euler(3.1415, -1.5707, 0.0, axes="szyx")
         pose_goal_msg.pose.orientation.x = quaternion[0] 
         pose_goal_msg.pose.orientation.y = quaternion[1] 
         pose_goal_msg.pose.orientation.z = quaternion[2] 
         pose_goal_msg.pose.orientation.w = quaternion[3] 
-        pose_goal_msg.pose.position.x = marker_pos.x - 0.2
+        # pose_goal_msg.pose.position.x = marker_pos.x - 0.2
+        pose_goal_msg.pose.position.x = marker_pos.x
         pose_goal_msg.pose.position.y = marker_pos.y
-        pose_goal_msg.pose.position.z = marker_pos.z - 0.08
+        # pose_goal_msg.pose.position.z = marker_pos.z - 0.1
+        pose_goal_msg.pose.position.z = marker_pos.z + 0.12
         self.move_group.set_pose_target(pose_goal_msg)
 
 
@@ -190,18 +203,106 @@ class Grasp(smach.State):
             rospy.logwarn("Planning failed or execution error. The goal pose may be unreachable.")
         self.move_group.clear_pose_targets()
 
-        # rospy.loginfo(f"planning and executing movement")
-        # success = self.move_group.go(wait=True)
-        # self.move_group.stop()
-        # self.move_group.clear_pose_targets()
-        # rospy.loginfo(f"planning and execution result: {success}")
+        # grasp the object
+        self._grasp_object([0.0, 0.0])
+        rospy.sleep(1.0)
 
-        rospy.sleep(5.0)
-
-        self._move_home_pose()
+        self.move_group.shift_pose_target(2, 0.05)
+        self.move_group.go(wait=True)
+        # self._move_home_pose()
         self.planning_scene.clear()
 
         return 'succeeded'
+
+class Drop(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=["succeeded"], input_keys=["navGoalInd"])
+        self.move_group = moveit_commander.MoveGroupCommander("arm_torso")
+        self.move_group.set_planner_id("RRTConnectkConfigDefault")
+        self.move_group.set_planning_time(10.0)
+        self.move_group.set_goal_orientation_tolerance(np.deg2rad(5))
+
+        # create publisher for moving the gripper
+        self.gripper_cmd_pub = rospy.Publisher("/parallel_gripper_controller/command", JointTrajectory, queue_size=1)
+
+        # set the names of the gripper joints
+        self.left_gripper_name = "gripper_left_finger_joint"
+        self.right_gripper_name = "gripper_right_finger_joint"
+
+    def _move_home_pose(self):
+        pose_goal_msg = PoseStamped()
+        pose_goal_msg.header.stamp = rospy.Time.now() 
+        pose_goal_msg.header.frame_id = "base_footprint" 
+        quaternion = quaternion_from_euler(1.055, -1.477, 2.09) 
+        pose_goal_msg.pose.orientation.x = quaternion[0] 
+        pose_goal_msg.pose.orientation.y = quaternion[1] 
+        pose_goal_msg.pose.orientation.z = quaternion[2] 
+        pose_goal_msg.pose.orientation.w = quaternion[3] 
+        pose_goal_msg.pose.position.x = 0.148 
+        pose_goal_msg.pose.position.y = 0.16 
+        pose_goal_msg.pose.position.z = 0.61 
+        self.move_group.set_pose_target(pose_goal_msg)
+
+        rospy.loginfo(f"planning and executing movement to home pose")
+        success = self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        rospy.loginfo(f"planning and execution result: {success}")
+
+    def _move_drop_pose(self):
+        # add box into planning scene for table
+        table_verties_msg = rospy.wait_for_message("/table_vertices", PointCloud2, timeout=5.0)
+        pc_data = pc2.read_points_list(table_verties_msg, field_names=("x", "y", "z"), skip_nans=True)
+        
+        min_x, min_y, min_z = pc_data[0]
+        max_x, max_y, max_z = pc_data[1]
+
+        pose_goal_msg = PoseStamped()
+        pose_goal_msg.header.stamp = rospy.Time.now() 
+        pose_goal_msg.header.frame_id = "base_footprint" 
+        quaternion = quaternion_from_euler(1.5707, 0.0, 0.0) 
+        pose_goal_msg.pose.orientation.x = quaternion[0] 
+        pose_goal_msg.pose.orientation.y = quaternion[1] 
+        pose_goal_msg.pose.orientation.z = quaternion[2] 
+        pose_goal_msg.pose.orientation.w = quaternion[3] 
+        pose_goal_msg.pose.position.x = (max_x + min_x) / 2
+        pose_goal_msg.pose.position.y = (max_y + min_y) / 2
+        pose_goal_msg.pose.position.z = (max_z + min_z) / 2 + 0.1
+        self.move_group.set_pose_target(pose_goal_msg)
+
+        rospy.loginfo(f"planning and executing movement to drop pose")
+        success = self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        rospy.loginfo(f"planning and execution result: {success}")
+
+    def _grasp_object(self, joint_angles: list):
+        joint_traj_msg = JointTrajectory()
+        joint_traj_msg.joint_names = [self.left_gripper_name, self.right_gripper_name]
+
+        p = JointTrajectoryPoint()
+        p.positions = joint_angles 
+        p.time_from_start = rospy.Duration(0.2)
+
+        joint_traj_msg.points.append(p)
+        self.gripper_cmd_pub.publish(joint_traj_msg)
+
+    def execute(self, userdata):
+        rospy.loginfo("Executing Drop Off state.")
+        rospy.loginfo(f"Dropping object off at table {userdata.navGoalInd}")
+
+        # move arm to the drop pose 
+        # self._move_drop_pose()
+
+        # release object
+        self._grasp_object([0.15, 0.15])
+        rospy.sleep(1.0)
+
+        # move arm to home pose
+        self._move_home_pose()
+
+        return "succeeded"
+    pass
 
 
 # main
@@ -250,7 +351,12 @@ def main():
                                 transitions={'succeeded':'GRASP', 
                                             'aborted':'NAVIGATION_TO_TABLE_ONE'})
         smach.StateMachine.add('GRASP', Grasp(), 
-                                transitions={'succeeded':'succeeded'})
+                                transitions={"succeeded":"DROP_OFF"})
+        smach.StateMachine.add("DROP_OFF", smach_ros.SimpleActionState("move_base", MoveBaseAction, goal_cb = nav_cb, input_keys=['navGoalInd'], output_keys=['navGoalInd']), 
+                                transitions={'succeeded':"DROP",
+                                            'aborted':'aborted'})
+        smach.StateMachine.add("DROP", Drop(),
+                                transitions={"succeeded":"succeeded"})
     # Use a introspection for visulize the state machine
     sis = smach_ros.IntrospectionServer('example_server', sm, '/SM_ROOT')
     sis.start()
