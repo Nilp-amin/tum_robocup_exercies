@@ -1,0 +1,10 @@
+waypoint_A: [-3.93,-2.23,0.1]
+waypoint_AB: [-0.88, -0.745, 0.1] # intermediate to go from A -> B so it does not get stuck
+waypoint_B: [-3.72,-8.58,0.1]
+waypoint_BC: [-2.7, -11.8, 0.1] # intermediate to go from B->C so it does not collide with table
+waypoint_C: [-1.28,-12.1,-0.1]
+waypoint_CA: [0.527, -11.9, 0.1] # intermediate to go from C->A so it does not collide with table
+waypoint_initial: [1.44, -1.87, 0.1] # to make the return loop path more robust
+
+target_pose: [0.537, -0.185, 0.561, 1.285, -1.494, 1.826]
+home_pose: [0.148, 0.16, 0.61, 1.055, -1.477, 2.09]

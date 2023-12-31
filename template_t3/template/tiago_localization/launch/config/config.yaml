@@ -1,0 +1,4 @@
+# >>>TODO: this needs tunning
+
+spin_speed: 1.0
+threshold: 0.0061

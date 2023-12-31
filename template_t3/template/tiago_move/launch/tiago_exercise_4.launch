@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+<include file="$(find tiago_2dnav_gazebo)/launch/tiago_navigation.launch">
+    <arg name="public_sim" value="true"/>
+</include>
+
+<include file="$(find tiago_move)/launch/tiago_move.launch"/>
+
+</launch>
